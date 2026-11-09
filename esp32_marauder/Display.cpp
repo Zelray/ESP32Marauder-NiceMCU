@@ -5,6 +5,15 @@
 
 #ifdef HAS_SCREEN
 
+// The capacitive-touch code paths below were written against the FT6336 and
+// call ft6336_init()/ft6336_read_raw(). The CST816D driver exposes the same
+// pair under its own name, so alias them here instead of duplicating the
+// rotation / edge-rejection logic that sits on top.
+#ifdef HAS_CST816D_TOUCH
+  #define ft6336_init     cst816d_init
+  #define ft6336_read_raw cst816d_read_raw
+#endif
+
 extern void backlightOn();
 
 namespace {
@@ -290,13 +299,21 @@ void Display::RunSetup() {
     this->touchscreen.setRotation(0);
   #endif
 
-  #ifdef HAS_CAP_TOUCH
-    ft6336_init();
-  #endif
-  
+  // NOTE: capacitive touch init was originally here, BEFORE tft.init().
+  // On the NiceMCU board the panel and the CST816D share one reset line
+  // (GPIO2 / kSharedReset), so tft.init() pulses the touch controller back
+  // into reset immediately after we set it up — the probe read succeeds (it
+  // runs first) but every later sample is dead. Boards with a dedicated
+  // CTP_RST were unaffected because their reset is a different pin.
+  // Touch is therefore initialised AFTER the display below.
+
   tft.init();
 
   tft.setRotation(SCREEN_ORIENTATION);
+
+  #ifdef HAS_CAP_TOUCH
+    ft6336_init();
+  #endif
 
   tft.setCursor(0, 0);
 

@@ -1,6 +1,15 @@
 
 .pio/
 .venv/
+# Local build output for the NiceMCU port — never commit.
+.build-libs/
+build_nicemcu/
+build_micro_test/
+build_2usb_test/
+*.log
+touch-capture.log
+# Vendor stock firmware dump — not ours to redistribute. Stays local.
+board-backup/
 coverage.xml
 .vscode/arduino.json
 .vscode/c_cpp_properties.json

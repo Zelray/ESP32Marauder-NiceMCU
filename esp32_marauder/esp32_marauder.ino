@@ -212,7 +212,17 @@ uint32_t currentTime  = 0;
       #define BL_SET(duty)     do { if (ws_backlight_bus_ready) ws_exio_write(WS_EXIO_PWM_REG, (duty)); } while (0)
     #elif ESP_ARDUINO_VERSION_MAJOR >= 3
       #define BL_SETUP()       ledcAttach(TFT_BL, BL_FREQ, BL_RESOLUTION)
-      #define BL_SET(duty)     ledcWrite(TFT_BL, (duty))
+      #ifdef MARAUDER_CYD_NICEMCU
+        // NiceMCU-32S-DEV: GPIO25 drives a P-channel MOSFET (AO3401) high-side
+        // switch, so the backlight is ACTIVE-LOW. Verified on hardware
+        // 2026-11-08: pin LOW = fully lit, pin HIGH = dim, PWM duty 128 = half.
+        // Duty must therefore be inverted. Without this, the brightness menu
+        // writes 255 ("100%") and gets the DIMMEST state, which is exactly the
+        // "menu says 100% but it is dim and dimming does nothing" symptom.
+        #define BL_SET(duty)     ledcWrite(TFT_BL, (255 - (duty)))
+      #else
+        #define BL_SET(duty)     ledcWrite(TFT_BL, (duty))
+      #endif
     #else
       #define BL_SETUP()       do { ledcSetup(BL_CHANNEL, BL_FREQ, BL_RESOLUTION); ledcAttachPin(TFT_BL, BL_CHANNEL); } while(0)
       #define BL_SET(duty)     ledcWrite(BL_CHANNEL, (duty))

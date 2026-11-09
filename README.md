@@ -3,6 +3,34 @@
 <!---[![Build Status](https://travis-ci.com/justcallmekoko/ESP32Marauder.svg?branch=master)](https://travis-ci.com/justcallmekoko/ESP32Marauder)--->
 <!---Shields/Badges https://shields.io/--->
 
+# ESP32 Marauder — with NiceMCU-32S-DEV 2.8" IPS support
+
+> **This fork adds one board target: `MARAUDER_CYD_NICEMCU`.**
+>
+> Hardware: **NiceMCU-32S-DEV_2.8IPS** — ESP32-D0WD-V3, 4 MB flash,
+> ST7789 240×320 panel (SPI), CST816D capacitive touch (I2C), active-low
+> backlight MOSFET on GPIO25.
+>
+> Status: **verified on hardware** — display (colours, orientation), capacitive
+> touch, backlight brightness control, and clean boot.
+>
+> Build:
+> ```
+> pwsh -NoProfile -File tools/build_nicemcu.ps1
+> ```
+> Flash (merged image at 0x0):
+> ```
+> python -m esptool -p COMxx --chip esp32 write-flash 0x0 \
+>   build_nicemcu/esp32_marauder.ino.merged.bin
+> ```
+>
+> The full port notes — pin map, the four hardware gotchas that took several
+> flash cycles to find, and the rollback procedure — are in
+> **[HANDOFF.md](HANDOFF.md)**. Read that before changing display or backlight
+> settings.
+>
+> Everything below is upstream's documentation.
+
 # ESP32 Marauder
 <p align="center"><img alt="Marauder logo" src="https://github.com/justcallmekoko/ESP32Marauder/blob/master/pictures/marauder_skull_patch_04_full_final.png?raw=true" width="300"></p>
 <p align="center">

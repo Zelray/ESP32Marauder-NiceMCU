@@ -27,6 +27,9 @@
 #if defined(MARAUDER_CYD_3_5_INCH) && !defined(ST7796_DRIVER)
   #error "MARAUDER_CYD_3_5_INCH requires User_Setup_cyd_3_5_inch.h (ST7796_DRIVER)"
 #endif
+#if defined(MARAUDER_CYD_NICEMCU) && !defined(ST7789_DRIVER)
+  #error "MARAUDER_CYD_NICEMCU requires User_Setup_cyd_nicemcu.h (ST7789_DRIVER)"
+#endif
 #if (defined(MARAUDER_CARDPUTER) || defined(MARAUDER_CARDPUTER_ADV)) && !defined(ST7789_2_DRIVER)
   #error "Cardputer targets require their ST7789_2_DRIVER TFT_eSPI setup"
 #endif
@@ -39,7 +42,13 @@
 #endif
 
 #ifdef HAS_CAP_TOUCH
-  #include "ft6336.h"
+  // Two capacitive controllers are in play. HAS_CST816D_TOUCH selects the
+  // NiceMCU board's part; everything else keeps the original FT6336 driver.
+  #ifdef HAS_CST816D_TOUCH
+    #include "cst816d.h"
+  #else
+    #include "ft6336.h"
+  #endif
 #endif
 
 // WiFi stuff

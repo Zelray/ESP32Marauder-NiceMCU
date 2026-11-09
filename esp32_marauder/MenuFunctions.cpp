@@ -6083,7 +6083,14 @@ void MenuFunctions::displayCurrentMenu(int start_index)
       // Backlight is the I/O expander's PWM register, not a GPIO.
       #define BL_PREVIEW(duty) ws_exio_write(WS_EXIO_PWM_REG, (duty))
     #elif ESP_ARDUINO_VERSION_MAJOR >= 3
-      #define BL_PREVIEW(duty) ledcWrite(TFT_BL, (duty))
+      #ifdef MARAUDER_CYD_NICEMCU
+        // Same active-low backlight as BL_SET in esp32_marauder.ino: the live
+        // preview in the brightness screen must invert duty too, or the bar
+        // moves in the opposite direction to the panel.
+        #define BL_PREVIEW(duty) ledcWrite(TFT_BL, (255 - (duty)))
+      #else
+        #define BL_PREVIEW(duty) ledcWrite(TFT_BL, (duty))
+      #endif
     #else
       #define BL_PREVIEW(duty) ledcWrite(0, (duty))
     #endif

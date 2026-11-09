@@ -33,6 +33,7 @@
   //#define MARAUDER_REV_FEATHER
   //#define MARAUDER_CYD_MICRO // 2432S028
   //#define MARAUDER_CYD_2USB // Another 2432S028 but it has tWo UsBs OoOoOoO
+  //#define MARAUDER_CYD_NICEMCU // NiceMCU-32S-DEV 2.8" IPS (ST7789 + CST816D)
   //#define MARAUDER_CYD_GUITION // ESP32-2432S024 GUITION
   //#define MARAUDER_CYD_3_5_INCH
   //#define MARAUDER_C5
@@ -107,6 +108,8 @@
     #define HARDWARE_NAME "Marauder v6"
   #elif defined(MARAUDER_V6_1)
     #define HARDWARE_NAME "Marauder v6.1"
+  #elif defined(MARAUDER_CYD_NICEMCU)
+    #define HARDWARE_NAME "NiceMCU-32S-DEV 2.8 IPS"
   #elif defined(MARAUDER_CYD_MICRO)
     #define HARDWARE_NAME "CYD 2432S028"
   #elif defined(MARAUDER_CYD_2USB)
@@ -184,6 +187,7 @@
       defined(MARAUDER_DEV_BOARD_PRO) || defined(XIAO_ESP32_S3) || \
       defined(XIAO_ESP32_C5) || defined(MARAUDER_REV_FEATHER) || \
       defined(MARAUDER_CYD_MICRO) || defined(MARAUDER_CYD_2USB) || \
+      defined(MARAUDER_CYD_NICEMCU) || \
       defined(MARAUDER_CYD_GUITION) || defined(MARAUDER_CYD_3_5_INCH) || \
       defined(MARAUDER_C5) || defined(MARAUDER_T_DONGLE_C5) || \
       defined(MARAUDER_CARDPUTER) || defined(MARAUDER_CARDPUTER_ADV) || \
@@ -411,6 +415,66 @@
     #define HAS_CYD_TOUCH
     //#define HAS_NIMBLE_2
     #define HAS_DIRECT_UPLOAD
+  #endif
+
+  // NiceMCU-32S-DEV 2.8" IPS — classic ESP32, but a modern CYD-class panel:
+  // ST7789 (SPI) plus a CST816D capacitive controller on I2C. It is NOT a
+  // 2432S028 clone, so none of the CYD resistive-touch assumptions apply.
+  //
+  // Deliberately absent for the first working build:
+  //   HAS_SD/USE_SD   — the microSD chip-select is not in NiceMCU's public
+  //                     board_config.h; it needs the schematic in docs/.
+  //   HAS_FLIPPER_LED — the factory UI lists "LED RGB GPIO4/16/17", i.e. three
+  //                     discrete pins, not a single WS2812 data line.
+  //   HAS_GPS         — no GPS on this board.
+  #ifdef MARAUDER_CYD_NICEMCU
+    #define HAS_TOUCH
+    #define HAS_CAP_TOUCH
+    #define HAS_CST816D_TOUCH
+    #define HAS_BT
+    #define HAS_BT_REMOTE
+    // HAS_BUTTONS is intentionally OFF. The only key is GPIO35, which on the
+    // ESP32 is an input-only pad with NO internal pull-up or pull-down.
+    // Marauder constructs Switches(C_BTN, 1000, C_PULL) with C_PULL=false,
+    // which asks the driver for a pull-down that the pin cannot provide:
+    //   1. the boot log fills with "gpio_pulldown_en(116): GPIO number error"
+    //   2. the pin floats, so justPressed() fires at random
+    //   3. that random press sets headless_mode = true and calls backlightOff(),
+    //      which is what made the screen "settle darker" a few seconds after boot
+    // Touch is the interface here, so the key is not needed.
+    //#define HAS_BUTTONS
+    #define HAS_SCREEN
+    #define HAS_FULL_SCREEN
+    #define HAS_TEMP_SENSOR
+    #define HAS_CYD_PORTRAIT
+    // HAS_SD is not optional in practice: HAS_DIRECT_UPLOAD code in
+    // CommandLine.cpp and MenuFunctions.cpp dereferences sd_obj unconditionally,
+    // so a board without a live SD definition fails to link. The microSD
+    // chip-select is still unknown, so SD_CS is -1 (see the SD_CS block):
+    // the object exists, mounting fails cleanly, SD features stay inert.
+    #define HAS_SD
+    #define USE_SD
+    // (Backlight probe removed 2026-11-08 — the hardware is now understood:
+    //  GPIO25 drives a P-channel MOSFET high-side switch, so the backlight is
+    //  ACTIVE-LOW. See the BL_SET note in esp32_marauder.ino.)
+    #define HAS_NIMBLE_2
+    // HAS_IDF_3 gates the arduino-esp32 core 3.x WiFi/BLE API paths
+    // (e.g. WIFI_AUTH_WPA3_ENTERPRISE). It must match the core version the
+    // build uses: core 3.3.4, not 2.0.11, exactly like the CYD_2USB profile
+    // this board is derived from.
+    #define HAS_IDF_3
+    #define HAS_DIRECT_UPLOAD
+
+    // CST816D wiring, taken from NiceMCU include/nicemcu/board_config.h.
+    // kTouchSda=33 kTouchScl=32 kTouchInterrupt=36 kTouchAddress=0x15
+    #define CTP_SDA 33
+    #define CTP_SCL 32
+    #define CTP_INT 36
+    // Panel and touch share the reset line on GPIO2. TFT_eSPI already pulses
+    // it during display init, so the driver must not claim it as CTP_RST.
+    #define CTP_RST -1
+    #define CAP_TOUCH_PANEL_WIDTH 240
+    #define CAP_TOUCH_PANEL_HEIGHT 320
   #endif
 
   #ifdef MARAUDER_CYD_2USB
@@ -1035,6 +1099,29 @@
       #define U_PULL true
       #define R_PULL true
       #define D_PULL true
+    #endif
+
+    #ifdef MARAUDER_CYD_NICEMCU
+      // The physical "Key" on GPIO35 is deliberately NOT used — see the note in
+      // the capability block. GPIO35 is input-only with no internal pull, so
+      // Switches() on it produces phantom presses and a phantom headless mode.
+      #define L_BTN -1
+      #define C_BTN -1
+      #define U_BTN -1
+      #define R_BTN -1
+      #define D_BTN -1
+
+      //#define HAS_L
+      //#define HAS_R
+      //#define HAS_U
+      //#define HAS_D
+      //#define HAS_C
+
+      #define L_PULL false
+      #define C_PULL false
+      #define U_PULL false
+      #define R_PULL false
+      #define D_PULL false
     #endif
 
     #ifdef MARAUDER_CYD_3_5_INCH
@@ -1874,6 +1961,80 @@
       #define KIT_LED_BUILTIN 13
     #endif
 
+    // NiceMCU-32S-DEV 2.8" IPS. Geometry matches the CYD 2USB (240x320 portrait
+    // ST7789) because that is the closest already-verified panel class, but the
+    // touch controller is different — see HAS_CST816D_TOUCH in the capability
+    // block above.
+    #if defined(MARAUDER_CYD_NICEMCU)
+      #define CHAN_PER_PAGE 7
+
+      #define SCREEN_CHAR_WIDTH 40
+      // HAS_ILI9341 is Marauder's "this board has a screen with touch" gate,
+      // used across Display.cpp/MenuFunctions.cpp/WiFiScan.cpp. It does not
+      // mean the panel is literally an ILI9341 here — the driver comes from
+      // User_Setup_cyd_nicemcu.h (ST7789).
+      #define HAS_ILI9341
+      #define HAS_ST7789
+
+      #define BANNER_TEXT_SIZE 2
+
+      #ifndef TFT_WIDTH
+        #define TFT_WIDTH 240
+      #endif
+
+      #ifndef TFT_HEIGHT
+        #define TFT_HEIGHT 320
+      #endif
+
+      #define GRAPH_VERT_LIM TFT_HEIGHT/2 - 1
+
+      #define EXT_BUTTON_WIDTH 30
+
+      #define SCREEN_BUFFER
+
+      #define MAX_SCREEN_BUFFER 21
+
+      #define SCREEN_ORIENTATION 0
+
+      #define CHAR_WIDTH 12
+      #define SCREEN_WIDTH TFT_WIDTH
+      #define SCREEN_HEIGHT TFT_HEIGHT
+      #define HEIGHT_1 TFT_WIDTH
+      #define WIDTH_1 TFT_HEIGHT
+      #define STANDARD_FONT_CHAR_LIMIT (TFT_WIDTH/6)
+      #define TEXT_HEIGHT 16
+      #define BOT_FIXED_AREA 0
+      #define TOP_FIXED_AREA 48
+      #define YMAX 320
+      #define minimum(a,b)     (((a) < (b)) ? (a) : (b))
+      #define MENU_FONT &FreeMono9pt7b
+      #define BUTTON_SCREEN_LIMIT 12
+      #define BUTTON_ARRAY_LEN BUTTON_SCREEN_LIMIT
+      #define STATUS_BAR_WIDTH 16
+      #define LVGL_TICK_PERIOD 6
+
+      #define FRAME_X 100
+      #define FRAME_Y 64
+      #define FRAME_W 120
+      #define FRAME_H 50
+
+      // Red zone size
+      #define REDBUTTON_X FRAME_X
+      #define REDBUTTON_Y FRAME_Y
+      #define REDBUTTON_W (FRAME_W/2)
+      #define REDBUTTON_H FRAME_H
+
+      // Green zone size
+      #define GREENBUTTON_X (REDBUTTON_X + REDBUTTON_W)
+      #define GREENBUTTON_Y FRAME_Y
+      #define GREENBUTTON_W (FRAME_W/2)
+      #define GREENBUTTON_H FRAME_H
+
+      #define STATUSBAR_COLOR 0x4A49
+
+      #define KIT_LED_BUILTIN 13
+    #endif
+
     #if defined(MARAUDER_CYD_3_5_INCH)
       #define CHAN_PER_PAGE 7
 
@@ -2607,6 +2768,25 @@
     //#define BUTTON_ARRAY_LEN 5
   #endif
 
+  #if defined(MARAUDER_CYD_NICEMCU)
+    #define BANNER_TIME 100
+
+    #define COMMAND_PREFIX "!"
+
+    // Keypad start position, key sizes and spacing
+    #define KEY_X 120 // Centre of key
+    #define KEY_Y 50
+    #define KEY_W 240 // Width and height
+    #define KEY_H 22
+    #define KEY_SPACING_X 0 // X and Y gap
+    #define KEY_SPACING_Y 1
+    #define KEY_TEXTSIZE 1   // Font size multiplier
+    #define ICON_W 22
+    #define ICON_H 22
+    #define BUTTON_PADDING 22
+    //#define BUTTON_ARRAY_LEN 5
+  #endif
+
   #if defined(MARAUDER_CYD_3_5_INCH)
     #define BANNER_TIME 100
     
@@ -2829,6 +3009,14 @@
 
     #ifdef MARAUDER_CYD_2USB
       #define SD_CS 5
+    #endif
+
+    #ifdef MARAUDER_CYD_NICEMCU
+      // Placeholder. The microSD chip-select is not documented in NiceMCU's
+      // public board_config.h; it has to come from docs/NiceMCU-32S-2.8IPS_
+      // 原理图V2.0.pdf. -1 makes SD.begin() fail on an invalid pin instead of
+      // hijacking a real one, which is what we want until the pin is confirmed.
+      #define SD_CS -1
     #endif
 
     #ifdef MARAUDER_CYD_3_5_INCH
@@ -3338,6 +3526,8 @@
   #elif defined(MARAUDER_CYD_MICRO)
     #define MARAUDER_TITLE_BYTES 13578
   #elif defined(MARAUDER_CYD_2USB)
+    #define MARAUDER_TITLE_BYTES 13578
+  #elif defined(MARAUDER_CYD_NICEMCU)
     #define MARAUDER_TITLE_BYTES 13578
   #elif defined(MARAUDER_CYD_3_5_INCH)
     #define MARAUDER_TITLE_BYTES 13578
