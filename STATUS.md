@@ -6,6 +6,8 @@
 | State | **WORKING on hardware** — display, touch, brightness all verified |
 | Target board | NiceMCU-32S-DEV 2.8IPS (ESP32-D0WD-V3, MAC `70:4b:ca:30:19:e4`, 4 MB, ST7789 240×320, CST816D I2C touch) |
 | Upstream | justcallmekoko/ESP32Marauder, master, v1.20.0 (MIT) |
+| Public repo | https://github.com/Zelray/ESP32Marauder-NiceMCU |
+| Published release | v1.20.0-nicemcu (merged 4 MB image attached) |
 | New board target | `MARAUDER_CYD_NICEMCU` |
 | Build command | `pwsh -NoProfile -File tools\build_nicemcu.ps1` |
 | Build status | **SUCCESS** — 1,970,143 B app (93%), ~77 KB RAM |

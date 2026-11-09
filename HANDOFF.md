@@ -476,6 +476,8 @@ These are non-obvious and cost several flash cycles each. Do not regress them.
 | What | Where |
 |---|---|
 | This fork | `C:\Users\anon\anti-projects\MarauderNicePort` |
+| Public repo (branch `nicemcu-32s-dev`) | <https://github.com/Zelray/ESP32Marauder-NiceMCU> |
+| Public release | <https://github.com/Zelray/ESP32Marauder-NiceMCU/releases/tag/v1.20.0-nicemcu> |
 | New board driver | `esp32_marauder\cst816d.h` |
 | New TFT setup | `User_Setup_cyd_nicemcu.h` |
 | Build script | `tools\build_nicemcu.ps1` |
